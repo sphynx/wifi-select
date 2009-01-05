@@ -1,5 +1,3 @@
-#!/bin/awk
-
 BEGIN { FS=":"; OFS="="; }
 /\<Cell/ { if (essid) print essid, security; security="none" }
 /\<ESSID:/ { essid=substr($2, 2, length($2) - 2) } # discard quotes

@@ -1,5 +1,6 @@
 #!/bin/bash
 
+#
 # net-select, tool for easy network connection using netcfg
 #
 # (C) Ivan N. Veselov <veselov@gmail.com> aka sphynx, 2009
@@ -28,7 +29,7 @@ get_network_list()
 
     ESSIDS=$(mktemp /tmp/essids.XXXXX)
 
-    iwlist $1 scan 2>/dev/null | awk -f detect-security.awk > $ESSIDS
+    iwlist $1 scan 2>/dev/null | awk -f $SUBR_DIR/parse-iwlist.awk > $ESSIDS
 
     # no networks found
     if [[ ! -s $ESSIDS ]]; then
@@ -121,15 +122,15 @@ if [ $RESULT = 0 ]; then
 
         # ask if we need to keep generated profile
         echo
-        err "do you want to keep generated profile for further editing? [y] "
+        err "do you want to keep generated profile for further editing? [y/N] "
         read -n 1 KEEP
         echo
 
-        [[ "$KEEP" == "n" ]] || KEEP="y"  # default is 'y'
+        [[ "$KEEP" == "y" ]] || KEEP="n"  # default is 'no'
         if [[ "$KEEP" == "n" ]]; then
-            err "removing failed profile $ESSID" && rm "$PROFILE"
+            err "removing generated profile $ESSID" && rm "$PROFILE"
         else
-            err "keeping failed profile $ESSID"
+            err "keeping generated profile $ESSID"
         fi
 
         exit 1
