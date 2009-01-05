@@ -69,6 +69,11 @@ END_OF_PROFILE
     return 0
 }
 
+if [ $(id -u) != 0 ]; then
+    err "this script should be run as root."
+    exit 1
+fi
+
 # check interface parameter
 [[ -z "$1" ]] && err "no interface parameter specified" && exit 1
 INTERFACE="$1"
