@@ -1,0 +1,120 @@
+#! /bin/bash
+
+. /etc/rc.d/functions
+. /usr/lib/network/network.subr
+
+err_append() {
+   stat_append " - $*"
+}
+
+err() {
+   printhl "$*"
+}
+
+#
+# list network essids along with its encryption type (none/wep/wpa)
+# e.g.: platinum=wpa
+#       home_network=none
+# return a path to the generated file with networks
+#
+list_nets_with_encr()
+{
+    [[ -z "$1" ]] && return 1
+
+    ESSIDS=$(mktemp /tmp/essids.XXXXX)
+
+    iwlist $1 scan 2>/dev/null | awk -f detect-security.awk > $ESSIDS
+
+    # File of 0 length, ie. no ssid's.
+    if [[ ! -s $ESSIDS ]]; then
+        return 1
+    fi
+
+    echo $ESSIDS
+
+    return 0
+}
+
+#
+# create new generated profile based on parameters passed
+# usage: create_profile $essid $interface $security $key(if needed)
+# returns path to the created profile
+#
+create_profile()
+{
+    ESSID=$1; INTERFACE=$2; SECURITY=$3; KEY=$4
+    PROFILE=$PROFILE_DIR/$ESSID
+    
+    cat >$PROFILE <<EOF
+CONNECTION="wireless"
+ESSID="$ESSID"
+INTERFACE="$INTERFACE"
+DESCRIPTION="Automatically generated profile"
+SCAN="yes"
+IP="dhcp"
+TIMEOUT="10"
+SECURITY="$SECURITY"
+EOF
+
+    [[ ! -z "$KEY" ]] && echo "KEY=\"$KEY\"" >> $PROFILE
+
+    chmod 644 $PROFILE
+    echo $PROFILE
+
+    return 0
+}
+
+# check interface parameter
+[[ -z "$1" ]] && err "no interface parameter specified" && exit 1
+INTERFACE=$1
+
+# retrieve path to file with networks and security types
+NETWORKS=$(list_nets_with_encr $INTERFACE) || err "no networks found"
+
+# set IFS variable for dialog to handle spaces in ESSID correctly
+# it will be unset later on
+IFS=$'=\n'
+ROWS=$(cat $NETWORKS)
+ESSID=$(dialog --menu "Select the network you wish to use" 16 50 8 \
+    $ROWS --stdout)
+RESULT=$?
+unset IFS
+
+if [ $RESULT = 0 ]; then
+    # if some network was selected
+    # check whether we have a valid profile for given ESSID
+    if [[ $(validate_profile $ESSID) ]]; then
+        # we do NOT have a profile, so create it right now
+
+        # at first, retrieve its security type
+        SECURITY=$(sed -r -n "s/^$ESSID=(.*)/\1/p" $NETWORKS)
+
+        # then ask for the encyption key if needed
+        if [[ ! $SECURITY = "none" ]]; then
+            KEY=$(dialog --passwordbox \
+                "Enter $SECURITY security key for \"$ESSID\"" 10 40 --stdout)
+        fi
+
+        # create a new profile
+        PROFILE=$(create_profile $ESSID $INTERFACE $SECURITY $KEY)
+    else
+        err "profile for $ESSID already exists, continue using"
+    fi
+
+    # let's try to connect
+    netcfg2 $ESSID
+
+    # remove profile if it was created but connection did not succeed
+    if [ ! $? = 0 ]; then
+        err "generated profile:"
+        cat $PROFILE
+        [[ ! -z $PROFILE ]] && err "removing failed profile $ESSID" && rm $PROFILE
+        rm $NETWORKS
+        exit 1
+    fi
+else
+    err "cancelling..."
+fi
+
+rm $NETWORKS
+exit 0
