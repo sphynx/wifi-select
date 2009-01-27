@@ -3,6 +3,7 @@
 #
 # net-select, tool for easy network connection using netcfg
 #
+# Licensed under GPL v2
 # (C) Ivan N. Veselov <veselov@gmail.com> aka sphynx, 2009
 #
 
@@ -90,7 +91,7 @@ ESSID=$(dialog --menu "Select the network you wish to use" 16 50 8 \
 RESULT=$?
 unset IFS
 
-if [ $RESULT = 0 ]; then
+if [[ $RESULT = 0 ]]; then
     # if any network was selected
     # check whether we have a valid profile for given ESSID
     if [[ $(validate_profile $ESSID) ]]; then
@@ -131,8 +132,8 @@ if [ $RESULT = 0 ]; then
         read -n 1 KEEP
         echo
 
-        [[ "$KEEP" == "y" ]] || KEEP="n"  # default is 'no'
-        if [[ "$KEEP" == "n" ]]; then
+        [[ "$KEEP" = y ]] || KEEP="n"  # default is 'no'
+        if [[ "$KEEP" = n ]]; then
             err "removing generated profile $ESSID" && rm "$PROFILE"
         else
             err "keeping generated profile $ESSID"
