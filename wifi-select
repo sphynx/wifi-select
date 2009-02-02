@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# net-select, tool for easy network connection using netcfg
+# wifi-select, tool for easy network connection using netcfg
 #
 # Licensed under GPL v2
 # (C) Ivan N. Veselov <veselov@gmail.com> aka sphynx, 2009
@@ -70,6 +70,23 @@ END_OF_PROFILE
     return 0
 }
 
+#
+# find a file from profile directory with specified ESSID
+#
+get_profile_by_essid()
+{
+    ESSID="$1"
+    [[ -z "$ESSID" ]] && return 1
+
+    # find using grep all the files in $PROFILE_DIR which
+    # contains ESSID=$ESSID and take the first filename
+    # (also skip vi backup files)
+    PROFILE=$(grep -REl "ESSID=[\"']?$ESSID[\"']?" "$PROFILE_DIR" | grep -v '~$' | head -1)
+
+    echo "$PROFILE"
+    return 0
+}
+
 if [ $(id -u) != 0 ]; then
     err "this script should be run as root."
     exit 1
@@ -79,21 +96,22 @@ fi
 [[ -z "$1" ]] && err "no interface parameter specified" && exit 1
 INTERFACE="$1"
 
+# bring interface up explicitly
+ifconfig $INTERFACE up
+
 # retrieve path to file with networks and security types
 NETWORKS=$(! get_network_list $INTERFACE) && err "no networks found" && exit 1
 
 # add profile availability flags
-# legend:
-# ! - profile present and generated, * - present, - - absent
 FLAGGED_NETS=$(mktemp /tmp/networks.XXXXX)
 while IFS="=" read net security; do
-    NET_FILE="$PROFILE_DIR/$net"
+    NET_FILE=$(get_profile_by_essid $net)
     if [ ! -e "$NET_FILE" ]; then
-        flag="-"
+        flag="-" # profile is not present
     elif grep -q 'Automatically generated' "$NET_FILE"; then
-        flag="!"
+        flag="!" # profile is automatically generated
     else
-        flag="*"
+        flag="*" # profile is handmade
     fi
     echo "$net=$flag $security"
 done < "$NETWORKS" > "$FLAGGED_NETS"
@@ -113,10 +131,18 @@ ESSID=$(dialog --menu "$SELECT_TEXT\n$LEGEND" 24 50 12 \
 RESULT=$?
 unset IFS
 
+# if any network was selected
 if [[ $RESULT = 0 ]]; then
-    # if any network was selected
+    # find profile or use plain ESSID if profile can't be found
+    PROFILE_FILE=$(get_profile_by_essid $ESSID)
+    if [ -z "$PROFILE_FILE" ]; then
+        PROFILE="$ESSID"
+    else
+        PROFILE=$(basename "$PROFILE_FILE")
+    fi
+
     # check whether we have a valid profile for given ESSID
-    if [[ $(validate_profile $ESSID) ]]; then
+    if [[ $(validate_profile "$PROFILE") ]]; then
         # we do NOT have a profile, so create it right now
 
         # at first, retrieve its security type
@@ -129,24 +155,24 @@ if [[ $RESULT = 0 ]]; then
         fi
 
         # create a new profile
-        PROFILE=$(create_profile "$ESSID" "$INTERFACE" "$SECURITY" "$KEY")
+        GEN_PROFILE=$(create_profile "$ESSID" "$INTERFACE" "$SECURITY" "$KEY")
         clear # after dialog
     else
         clear # after dialog
         err "profile for $ESSID already exists, continue using it"
     fi
 
-    rm $NETWORKS # not needed anymore
+    rm $NETWORKS # it's not needed anymore
 
     # let's try to connect
-    netcfg2 $ESSID
+    netcfg2 $PROFILE
 
     # if profile was created but connection did not succeed
-    if [[ $? != 0 && -n "$PROFILE" ]]; then
+    if [[ $? != 0 && -n "$GEN_PROFILE" ]]; then
 
         # show generated profile
         err "generated profile:\n"
-        cat "$PROFILE"
+        cat "$GEN_PROFILE"
 
         # ask if we need to keep generated profile
         echo
@@ -156,9 +182,9 @@ if [[ $RESULT = 0 ]]; then
 
         [[ "$KEEP" = y ]] || KEEP="n"  # default is 'no'
         if [[ "$KEEP" = n ]]; then
-            err "removing generated profile $ESSID" && rm "$PROFILE"
+            err "removing generated profile for $ESSID" && rm "$GEN_PROFILE"
         else
-            err "keeping generated profile $ESSID"
+            err "keeping generated profile for $ESSID"
         fi
 
         exit 1
