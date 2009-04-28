@@ -105,7 +105,7 @@ NETWORKS=$(! get_network_list $INTERFACE) && err "no networks found" && exit 1
 # add profile availability flags
 FLAGGED_NETS=$(mktemp /tmp/networks.XXXXX)
 while IFS="=" read net security; do
-    NET_FILE=$(get_profile_by_essid $net)
+    NET_FILE=$(get_profile_by_essid "$net")
     if [ ! -e "$NET_FILE" ]; then
         flag="-" # profile is not present
     elif grep -q 'Automatically generated' "$NET_FILE"; then
@@ -134,7 +134,7 @@ unset IFS
 # if any network was selected
 if [[ $RESULT = 0 ]]; then
     # find profile or use plain ESSID if profile can't be found
-    PROFILE_FILE=$(get_profile_by_essid $ESSID)
+    PROFILE_FILE=$(get_profile_by_essid "$ESSID")
     if [ -z "$PROFILE_FILE" ]; then
         PROFILE="$ESSID"
     else
@@ -165,7 +165,7 @@ if [[ $RESULT = 0 ]]; then
     rm $NETWORKS # it's not needed anymore
 
     # let's try to connect
-    netcfg2 $PROFILE
+    netcfg2 "$PROFILE"
 
     # if profile was created but connection did not succeed
     if [[ $? != 0 && -n "$GEN_PROFILE" ]]; then
