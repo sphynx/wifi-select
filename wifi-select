@@ -30,7 +30,7 @@ get_network_list()
 
     ESSIDS=$(mktemp /tmp/essids.XXXXX)
 
-    iwlist $1 scan 2>/dev/null | awk -f $SUBR_DIR/parse-iwlist.awk > $ESSIDS
+    iwlist $1 scan 2>/dev/null | awk -f $SUBR_DIR/parse-iwlist.awk | sort -t= -nrk3 > $ESSIDS
 
     # no networks found
     if [[ ! -s $ESSIDS ]]; then
@@ -104,7 +104,7 @@ NETWORKS=$(! get_network_list $INTERFACE) && err "no networks found" && exit 1
 
 # add profile availability flags
 FLAGGED_NETS=$(mktemp /tmp/networks.XXXXX)
-while IFS="=" read net security; do
+while IFS="=" read net security quality; do
     NET_FILE=$(get_profile_by_essid "$net")
     if [ ! -e "$NET_FILE" ]; then
         flag="-" # profile is not present
@@ -113,7 +113,7 @@ while IFS="=" read net security; do
     else
         flag="*" # profile is handmade
     fi
-    echo "$net=$flag $security"
+    echo -e "$net=$flag $security \t ${quality}%"
 done < "$NETWORKS" > "$FLAGGED_NETS"
 
 # set IFS variable for dialog to handle spaces in ESSID correctly
@@ -146,7 +146,7 @@ if [[ $RESULT = 0 ]]; then
         # we do NOT have a profile, so create it right now
 
         # at first, retrieve its security type
-        SECURITY=$(sed -n "s/^$ESSID=\(.*\)/\1/p" $NETWORKS)
+        SECURITY=$(sed -n "s/^$ESSID=\(.*\)=.*/\1/p" $NETWORKS)
 
         # then ask for the security key if needed
         if [[ ! $SECURITY = "none" ]]; then
