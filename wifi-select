@@ -8,7 +8,7 @@
 #
 
 . /etc/rc.d/functions
-. /usr/lib/network/network.subr
+. /usr/lib/network/network
 
 err_append() {
    stat_append " - $*"
@@ -142,7 +142,7 @@ if [[ $RESULT = 0 ]]; then
     fi
 
     # check whether we have a valid profile for given ESSID
-    if [[ $(validate_profile "$PROFILE") ]]; then
+    if [[ $(load_profile "$PROFILE") ]]; then
         # we do NOT have a profile, so create it right now
 
         # at first, retrieve its security type
