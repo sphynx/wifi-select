@@ -146,7 +146,7 @@ if [[ $RESULT = 0 ]]; then
         # we do NOT have a profile, so create it right now
 
         # at first, retrieve its security type
-        SECURITY=$(sed -n "s/^$ESSID=\(.*\)=.*/\1/p" $NETWORKS)
+        SECURITY=$(sed -n "s/^$ESSID=\(.*\)=.*/\1/p;T;q" $NETWORKS)
 
         # then ask for the security key if needed
         if [[ ! $SECURITY = "none" ]]; then
