@@ -6,3 +6,6 @@ Contributors:
 
 - john_schaf from ArchLinux forums
 added signal strength and sorting by it
+
+- davvil from ArchLinux forums
+fixed bug with several profiles having the same name
