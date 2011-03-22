@@ -113,7 +113,7 @@ while IFS="=" read net security quality; do
     else
         flag="*" # profile is handmade
     fi
-    echo -e "$net=$flag $security \t ${quality}%"
+    echo -e "$net=$flag $security   ${quality}%"
 done < "$NETWORKS" > "$FLAGGED_NETS"
 
 # set IFS variable for dialog to handle spaces in ESSID correctly
