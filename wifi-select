@@ -4,9 +4,10 @@
 # wifi-select, tool for easy network connection using netcfg
 #
 # Licensed under GPL v2
-# (C) Ivan N. Veselov <veselov@gmail.com> aka sphynx, 2009
+# (C) Ivan N. Veselov <veselov@gmail.com> aka sphynx, 2009-2011
 #
 
+. /etc/rc.conf
 . /etc/rc.d/functions
 . /usr/lib/network/network
 
@@ -92,12 +93,19 @@ if [ $(id -u) != 0 ]; then
     exit 1
 fi
 
-# check interface parameter
-[[ -z "$1" ]] && err "no interface parameter specified" && exit 1
-INTERFACE="$1"
+# set interface parameter (if not passed, use $WIRELESS_INTERFACE from
+# /etc/rc.conf)
+if [ -n "$1" ]; then
+    INTERFACE="$1"
+elif [ -n "$WIRELESS_INTERFACE" ]; then
+    INTERFACE="$WIRELESS_INTERFACE"
+else
+    err 'no interface parameter specified and no $WIRELESS_INTERFACE in /etc/rc.conf'
+    exit 1
+fi
 
 # bring interface up explicitly
-ifconfig $INTERFACE up
+ip link set $INTERFACE up
 
 # retrieve path to file with networks and security types
 NETWORKS=$(! get_network_list $INTERFACE) && err "no networks found" && exit 1
