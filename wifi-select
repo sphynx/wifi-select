@@ -65,7 +65,7 @@ END_OF_PROFILE
 
     [[ -n "$KEY" ]] && echo "KEY=\"$KEY\"" >> "$PROFILE"
 
-    chmod 644 "$PROFILE"
+    chmod 600 "$PROFILE"
     echo "$PROFILE"
 
     return 0
