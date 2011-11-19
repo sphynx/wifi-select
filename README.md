@@ -7,7 +7,8 @@ type:
     $ sudo wifi-select wlan0
 
 and choose the network you need. In order not to type "wlan0" every time, you
-can set it in $WIRELESS_INTERFACE in /etc/rc.conf.
+can set it (or make sure it is already there) in $WIRELESS_INTERFACE in
+/etc/conf.d/netcfg
 
 "wifi-select" is currently packaged and available in [community] ArchLinux
 repository. To install it, please run:
@@ -16,10 +17,10 @@ repository. To install it, please run:
 
 wifi-select does the following and nothing more:
 
-* parses `iwlist scan` results and presents list of networks along with its
+* parses `iwlist scan` results and presents the list of networks along with their
   security settings (WPA/WEP/None) and signal quality using "dialog" tool
   
-* if a user selects a network with existing profile -- it uses this profile to
+* if a user selects a network with an existing profile -- it uses this profile to
   connect with "netcfg"
   
 * if the user selects a new network (which doesn't have a profile yet),
@@ -28,7 +29,7 @@ wifi-select does the following and nothing more:
   
 * if a network connection succeeds, profile is saved for later usage
 
-* if a network connection fails, user is asked whether he/she wants to keep the
+* if a network connection fails, the user is asked whether he/she wants to keep the
   generated profile for further usage (for example to change $IP to static or
   adjust some additional options)
 

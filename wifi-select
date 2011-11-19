@@ -7,7 +7,7 @@
 # (C) Ivan N. Veselov <veselov@gmail.com> aka sphynx, 2009-2011
 #
 
-. /etc/rc.conf
+. /etc/conf.d/netcfg
 . /etc/rc.d/functions
 . /usr/lib/network/network
 
@@ -98,7 +98,7 @@ Arguments:
  -h, --help        show this help
 
  interface         a wireless interface to use
-                   (if omitted, uses WIRELESS_INTERFACE from /etc/rc.conf)
+                   (if omitted, uses WIRELESS_INTERFACE from /etc/conf.d/netcfg)
 EOF
 }
 
@@ -130,13 +130,13 @@ if [ $(id -u) != 0 ]; then
 fi
 
 # set interface parameter (if not passed, use $WIRELESS_INTERFACE from
-# /etc/rc.conf)
+# /etc/conf.d/netcfg)
 if [ -n "$1" ]; then
     INTERFACE="$1"
 elif [ -n "$WIRELESS_INTERFACE" ]; then
     INTERFACE="$WIRELESS_INTERFACE"
 else
-    exit_fail 'No interface parameter specified and no $WIRELESS_INTERFACE in /etc/rc.conf'
+    exit_fail 'No interface parameter specified and no $WIRELESS_INTERFACE in /etc/conf.d/netcfg'
 fi
 
 # bring interface up explicitly
