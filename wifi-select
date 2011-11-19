@@ -158,7 +158,7 @@ if [[ $RESULT = 0 ]]; then
 
         # then ask for the security key if needed
         if [[ ! $SECURITY = "none" ]]; then
-            KEY=$(dialog --passwordbox \
+            KEY=$(dialog --insecure --passwordbox \
                 "Enter $SECURITY security key for \"$ESSID\"" 10 40 --stdout)
         fi
 
