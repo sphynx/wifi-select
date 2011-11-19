@@ -29,9 +29,9 @@ get_network_list()
 {
     [[ -z "$1" ]] && return 1
 
-    ESSIDS=$(mktemp /tmp/essids.XXXXX)
+    local ESSIDS=$(mktemp /tmp/essids.XXXXX)
 
-    iwlist $1 scan 2>/dev/null | awk -f $SUBR_DIR/parse-iwlist.awk | sort -t= -nrk3 > $ESSIDS
+    iwlist $1 scan 2>/dev/null | awk -f $SUBR_DIR/parse-iwlist.awk | sort -t$'\t' -nrk3 > $ESSIDS
 
     # no networks found
     if [[ ! -s $ESSIDS ]]; then
@@ -49,7 +49,7 @@ get_network_list()
 #
 create_profile()
 {
-    ESSID="$1"; INTERFACE="$2"; SECURITY="$3"; KEY="$4"
+    local ESSID="$1" INTERFACE="$2" SECURITY="$3" KEY="$4"
     PROFILE="$PROFILE_DIR/$ESSID"
 
     cat >"$PROFILE" <<END_OF_PROFILE
@@ -76,20 +76,20 @@ END_OF_PROFILE
 #
 get_profile_by_essid()
 {
-    ESSID="$1"
+    local ESSID="$1"
     [[ -z "$ESSID" ]] && return 1
 
     # find using grep all the files in $PROFILE_DIR which
     # contains ESSID=$ESSID and take the first filename
     # (also skip vi backup files)
-    PROFILE=$(grep -REl "ESSID=[\"']?$ESSID[\"']?" "$PROFILE_DIR" | grep -v '~$' | head -1)
+    local PROFILE=$(grep -REl "ESSID=[\"']?$ESSID[\"']?" "$PROFILE_DIR" | grep -v '~$' | head -1)
 
     echo "$PROFILE"
     return 0
 }
 
 if [ $(id -u) != 0 ]; then
-    err "this script should be run as root."
+    err "wifi-select should be run as root"
     exit 1
 fi
 
@@ -112,7 +112,7 @@ NETWORKS=$(! get_network_list $INTERFACE) && err "no networks found" && exit 1
 
 # add profile availability flags
 FLAGGED_NETS=$(mktemp /tmp/networks.XXXXX)
-while IFS="=" read net security quality; do
+while IFS=$'\t' read -r net security quality; do
     NET_FILE=$(get_profile_by_essid "$net")
     if [ ! -e "$NET_FILE" ]; then
         flag="-" # profile is not present
@@ -121,12 +121,12 @@ while IFS="=" read net security quality; do
     else
         flag="*" # profile is handmade
     fi
-    echo -e "$net=$flag $(printf %04s $security)  $(printf %03s $quality)%"
+    echo -e "$net\t$flag $(printf %04s $security)  $(printf %03s $quality)%"
 done < "$NETWORKS" > "$FLAGGED_NETS"
 
 # set IFS variable for dialog to handle spaces in ESSID correctly
 # it will be unset later on
-IFS=$'=\n'
+IFS=$'\t\n'
 MENU_ROWS=$(cat $FLAGGED_NETS)
 rm $FLAGGED_NETS
 SELECT_TEXT="Select the network you wish to use"
@@ -154,7 +154,7 @@ if [[ $RESULT = 0 ]]; then
         # we do NOT have a profile, so create it right now
 
         # at first, retrieve its security type
-        SECURITY=$(sed -n "s/^$ESSID=\(.*\)=.*/\1/p;T;q" $NETWORKS)
+        SECURITY=$(sed -n "s/^$ESSID\t\(.*\)\t.*/\1/p;T;q" $NETWORKS)
 
         # then ask for the security key if needed
         if [[ ! $SECURITY = "none" ]]; then

@@ -1,4 +1,4 @@
-BEGIN { OFS = "="; } # OFS is a field separator used for "print"
+BEGIN { OFS = "\t"; } # OFS is a field separator used for "print"
 /\<Cell/ {
     # New cell description has started, so we need to print a previous one.
     # Detect security mode first.
@@ -8,8 +8,7 @@ BEGIN { OFS = "="; } # OFS is a field separator used for "print"
     wep = 0; wpa = 0;
 }
 /\<ESSID:/ {
-    split($1, essid_parts, ":");
-    essid = essid_parts[2];
+    essid = substr($0, index($0, ":") + 1);
     essid = substr(essid, 2, length(essid) - 2)  # discard quotes
 }
 /\<Quality/ {
