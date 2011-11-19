@@ -216,6 +216,12 @@ if [[ $RESULT = 0 ]]; then
             fi
             KEY=$(dialog $INSECURE $WIDGET \
                 "Enter $SECURITY security key for \"$ESSID\"" 10 40 --stdout)
+
+            if [[ $? != 0 ]]; then
+                # user has cancelled while typing the key
+                clear
+                exit_fail "No security key entered, aborting"
+            fi
         fi
 
         # create a new profile
