@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# wifi-select, tool for easy network connection using netcfg
+# wifi-select, a tool for easy wireless network connection using netcfg
 #
 # Licensed under GPL v2
 # (C) Ivan N. Veselov <veselov@gmail.com> aka sphynx, 2009-2011
@@ -10,10 +10,6 @@
 . /etc/rc.conf
 . /etc/rc.d/functions
 . /usr/lib/network/network
-
-err_append() {
-   stat_append " - $*"
-}
 
 err() {
    printhl "$*"
@@ -88,9 +84,49 @@ get_profile_by_essid()
     return 0
 }
 
+usage()
+{
+    cat <<EOF
+Usage: wifi-select [-p | --show-pass] [-h | --help] [interface]
+
+Shows a list of available wireless networks and interactively connects to
+the network you select, asking for a password if needed.
+
+Arguments:
+ -p, --show-pass   show password characters instead of '*' while typing a password,
+                   (by default it shows '*')
+ -h, --help        show this help
+
+ interface         a wireless interface to use
+                   (if omitted, uses WIRELESS_INTERFACE from /etc/rc.conf)
+EOF
+}
+
+# defaults for options
+SHOW_PASS=n
+
+# handle options
+while [[ $1 == -* ]]; do
+    case "$1" in
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -p|--show-pass*)
+            SHOW_PASS=y
+            shift
+            ;;
+        -*)
+            err "invalid option: $1"
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+# check for root
 if [ $(id -u) != 0 ]; then
-    err "wifi-select should be run as root"
-    exit 1
+    exit_fail 'wifi-select should be run with root privileges'
 fi
 
 # set interface parameter (if not passed, use $WIRELESS_INTERFACE from
@@ -100,15 +136,27 @@ if [ -n "$1" ]; then
 elif [ -n "$WIRELESS_INTERFACE" ]; then
     INTERFACE="$WIRELESS_INTERFACE"
 else
-    err 'no interface parameter specified and no $WIRELESS_INTERFACE in /etc/rc.conf'
-    exit 1
+    exit_fail 'No interface parameter specified and no $WIRELESS_INTERFACE in /etc/rc.conf'
 fi
 
 # bring interface up explicitly
-ip link set $INTERFACE up
+# ip link set $INTERFACE up
+is_interface "$INTERFACE" || exit_fail "No such interface: $INTERFACE"
+if [[ -z "$(ip link show up dev $INTERFACE)" ]]; then
+    [[ -f "$IFACE_DIR/$INTERFACE" ]] && . "$IFACE_DIR/$INTERFACE"
+    bring_interface up "$INTERFACE" || exit_fail "Interface unavailable"
+    SPAWNED_INTERFACE=1
+fi
 
-# retrieve path to file with networks and security types
-NETWORKS=$(! get_network_list $INTERFACE) && err "no networks found" && exit 1
+# scan for networks and get the file with networks and security types
+report_try "Scanning for networks"
+NETWORKS=$(get_network_list $INTERFACE)
+if [[ $? = 1 ]]; then
+    report_fail
+    exit_fail "No networks found"
+else
+    report_success
+fi
 
 # add profile availability flags
 FLAGGED_NETS=$(mktemp /tmp/networks.XXXXX)
@@ -158,7 +206,15 @@ if [[ $RESULT = 0 ]]; then
 
         # then ask for the security key if needed
         if [[ ! $SECURITY = "none" ]]; then
-            KEY=$(dialog --insecure --passwordbox \
+            if [[ $SHOW_PASS = y ]]; then
+                WIDGET='--inputbox'
+            else
+                # --insecure here means we show '*', without it
+                # the password input field is just blank
+                INSECURE='--insecure'
+                WIDGET='--passwordbox'
+            fi
+            KEY=$(dialog $INSECURE $WIDGET \
                 "Enter $SECURITY security key for \"$ESSID\"" 10 40 --stdout)
         fi
 
@@ -167,41 +223,43 @@ if [[ $RESULT = 0 ]]; then
         clear # after dialog
     else
         clear # after dialog
-        err "profile for $ESSID already exists, continue using it"
+        err "Profile for $ESSID already exists, continue using it"
     fi
 
     rm $NETWORKS # it's not needed anymore
 
     # let's try to connect
-    netcfg2 "$PROFILE"
+    netcfg "$PROFILE"
 
     # if profile was created but connection did not succeed
     if [[ $? != 0 && -n "$GEN_PROFILE" ]]; then
 
         # show generated profile
-        err "generated profile:\n"
+        err "Generated profile:\n"
         cat "$GEN_PROFILE"
 
         # ask if we need to keep generated profile
         echo
-        err "do you want to keep generated profile for further editing? [y/N] "
+        err "Do you want to keep the generated profile ('$ESSID')? [y/N] "
         read -n 1 KEEP
         echo
 
         [[ "$KEEP" = y ]] || KEEP="n"  # default is 'no'
         if [[ "$KEEP" = n ]]; then
-            err "removing generated profile for $ESSID" && rm "$GEN_PROFILE"
+            err "Removing generated profile for $ESSID" && rm "$GEN_PROFILE"
         else
-            err "keeping generated profile for $ESSID"
+            err "Keeping generated profile for $ESSID"
         fi
+
+        # bring down interface if we have spawned it before
+        [[ "$SPAWNED_INTERFACE" ]] && bring_interface down "$INTERFACE"
 
         exit 1
     fi
 else
     clear # after dialog
-    err "cancelling..."
     rm $NETWORKS
-    exit 1
+    err "No networks selected"
 fi
 
 exit 0
