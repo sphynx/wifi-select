@@ -222,6 +222,11 @@ if [[ $RESULT = 0 ]]; then
                 clear
                 exit_fail "No security key entered, aborting"
             fi
+
+            if [[ $SECURITY = "wpa" ]]; then
+                # convert the key to hexidecimal string
+                KEY=`wpa_passphrase $ESSID "$KEY" | awk '/^[^#]psk=/ {print $1}'|cut -d = -f2`
+            fi
         fi
 
         # create a new profile
