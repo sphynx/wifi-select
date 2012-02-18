@@ -87,23 +87,26 @@ get_profile_by_essid()
 usage()
 {
     cat <<EOF
-Usage: wifi-select [-p | --show-pass] [-h | --help] [interface]
+Usage: wifi-select [-p | --show-pass] [-x | --pass-in-hex] [-h | --help] [interface]
 
 Shows a list of available wireless networks and interactively connects to
 the network you select, asking for a password if needed.
 
 Arguments:
- -p, --show-pass   show password characters instead of '*' while typing a password,
-                   (by default it shows '*')
- -h, --help        show this help
+ -p, --show-pass    show password characters instead of '*' while typing a password,
+                    (by default it shows '*')
+ -x, --pass-in-hex  store the entered WPA password as a hexadecimal string
+                    (using wpa_passphrase)
+ -h, --help         show this help
 
- interface         a wireless interface to use
-                   (if omitted, uses WIRELESS_INTERFACE from /etc/conf.d/netcfg)
+ interface          a wireless interface to use
+                    (if omitted, uses WIRELESS_INTERFACE from /etc/conf.d/netcfg)
 EOF
 }
 
 # defaults for options
 SHOW_PASS=n
+PASS_IN_HEX=n
 
 # handle options
 while [[ $1 == -* ]]; do
@@ -114,6 +117,10 @@ while [[ $1 == -* ]]; do
             ;;
         -p|--show-pass*)
             SHOW_PASS=y
+            shift
+            ;;
+        -x|--pass-in-hex)
+            PASS_IN_HEX=y
             shift
             ;;
         -*)
@@ -223,9 +230,13 @@ if [[ $RESULT = 0 ]]; then
                 exit_fail "No security key entered, aborting"
             fi
 
-            if [[ $SECURITY = "wpa" ]]; then
-                # convert the key to hexidecimal string
-                KEY=`wpa_passphrase $ESSID "$KEY" | awk '/^[^#]psk=/ {print $1}'|cut -d = -f2`
+            # convert the key to hexadecimal string, if needed
+            if [[ $SECURITY = "wpa" && $PASS_IN_HEX = "y" ]]; then
+                if PHRASE=$(wpa_passphrase "$ESSID" "$KEY"); then
+                    # convert only if wpa_passphrase has succeeded
+                    # (the key is longer than 7 chars, etc.)
+                    KEY=$(echo "$PHRASE" | awk -F= '/^\s+psk=/ { print $2 }')
+                fi
             fi
         fi
 
