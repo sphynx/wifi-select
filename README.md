@@ -32,7 +32,7 @@ repository. To install it, please run:
      -h, --help         show this help
 
      interface          a wireless interface to use
-                    (if omitted, uses WIRELESS_INTERFACE from /etc/conf.d/netcfg)
+                        (if omitted, uses WIRELESS_INTERFACE from /etc/conf.d/netcfg)
 
 ## Functionality
     
