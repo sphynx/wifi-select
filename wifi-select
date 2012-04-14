@@ -4,7 +4,7 @@
 # wifi-select, a tool for easy wireless network connection using netcfg
 #
 # Licensed under GPL v2
-# (C) Ivan N. Veselov <veselov@gmail.com> aka sphynx, 2009-2011
+# (C) Ivan N. Veselov <veselov@gmail.com> aka sphynx, 2009-2012
 #
 
 . /etc/conf.d/netcfg
@@ -45,7 +45,7 @@ get_network_list()
 #
 create_profile()
 {
-    local ESSID="$1" INTERFACE="$2" SECURITY="$3" KEY="$4"
+    local ESSID="$1" INTERFACE="$2" SECURITY="$3" KEY="$4" USE_DHCLIENT="$5"
     PROFILE="$PROFILE_DIR/$ESSID"
 
     cat >"$PROFILE" <<END_OF_PROFILE
@@ -60,6 +60,7 @@ SECURITY="$SECURITY"
 END_OF_PROFILE
 
     [[ -n "$KEY" ]] && echo "KEY=\"$KEY\"" >> "$PROFILE"
+    [[ "$USE_DHCLIENT" = y ]] && echo 'DHCLIENT="yes"' >> "$PROFILE"
 
     chmod 600 "$PROFILE"
     echo "$PROFILE"
@@ -87,7 +88,7 @@ get_profile_by_essid()
 usage()
 {
     cat <<EOF
-Usage: wifi-select [-p | --show-pass] [-x | --pass-in-hex] [-h | --help] [interface]
+Usage: wifi-select [-p | --show-pass] [-x | --pass-in-hex] [--use-dhclient] [-h | --help] [interface]
 
 Shows a list of available wireless networks and interactively connects to
 the network you select, asking for a password if needed.
@@ -97,6 +98,7 @@ Arguments:
                     (by default it shows '*')
  -x, --pass-in-hex  store the entered WPA password as a hexadecimal string
                     (using wpa_passphrase)
+     --use-dhclient use "dhclient" instead of "dhcpcd" in generated profiles
  -h, --help         show this help
 
  interface          a wireless interface to use
@@ -107,6 +109,7 @@ EOF
 # defaults for options
 SHOW_PASS=n
 PASS_IN_HEX=n
+USE_DHCLIENT=n
 
 # handle options
 while [[ $1 == -* ]]; do
@@ -121,6 +124,10 @@ while [[ $1 == -* ]]; do
             ;;
         -x|--pass-in-hex)
             PASS_IN_HEX=y
+            shift
+            ;;
+        --use-dhclient)
+            USE_DHCLIENT=y
             shift
             ;;
         -*)
@@ -241,7 +248,7 @@ if [[ $RESULT = 0 ]]; then
         fi
 
         # create a new profile
-        GEN_PROFILE=$(create_profile "$ESSID" "$INTERFACE" "$SECURITY" "$KEY")
+        GEN_PROFILE=$(create_profile "$ESSID" "$INTERFACE" "$SECURITY" "$KEY" "$USE_DHCLIENT")
         clear # after dialog
     else
         clear # after dialog

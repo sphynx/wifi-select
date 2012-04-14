@@ -19,7 +19,7 @@ repository. To install it, please run:
 
 ## Synopsis
 
-    Usage: wifi-select [-p | --show-pass] [-x | --pass-in-hex] [-h | --help] [interface]
+    Usage: wifi-select [-p | --show-pass] [-x | --pass-in-hex] [--use-dhclient] [-h | --help] [interface]
 
     Shows a list of available wireless networks and interactively connects to
     the network you select, asking for a password if needed.
@@ -29,13 +29,15 @@ repository. To install it, please run:
                         (by default it shows '*')
      -x, --pass-in-hex  store the entered WPA password as a hexadecimal string
                         (using wpa_passphrase)
+         --use-dhclient use "dhclient" instead of "dhcpcd" in generated profiles
      -h, --help         show this help
 
      interface          a wireless interface to use
                         (if omitted, uses WIRELESS_INTERFACE from /etc/conf.d/netcfg)
 
+
 ## Functionality
-    
+
 *wifi-select* does the following and nothing more:
 
 * parses `iwlist scan` results and presents a list of networks along with their
