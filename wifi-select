@@ -8,7 +8,15 @@
 #
 
 . /etc/conf.d/netcfg
-. /etc/rc.d/functions
+if [ -f /etc/rc.d/functions ]; then
+    . /etc/rc.d/functions
+else
+    function printhl()
+    {
+        echo -e "$*"
+    }
+fi
+
 . /usr/lib/network/network
 
 err() {
