@@ -7,21 +7,23 @@
 # (C) Ivan N. Veselov <veselov@gmail.com> aka sphynx, 2009-2012
 #
 
-. /etc/conf.d/netcfg
+#
+# do not use printhl (if not available) for better compatibility with `systemd`,
+# see the issue #3: https://github.com/sphynx/wifi-select/issues/3
+#
 if [ -f /etc/rc.d/functions ]; then
     . /etc/rc.d/functions
+    err() {
+        printhl "$*"
+    }
 else
-    function printhl()
-    {
+    err() {
         echo -e "$*"
     }
 fi
 
+. /etc/conf.d/netcfg
 . /usr/lib/network/network
-
-err() {
-   printhl "$*"
-}
 
 #
 # list network essids along with its encryption type (none/wep/wpa)
