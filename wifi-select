@@ -61,14 +61,14 @@ create_profile()
     PROFILE="$PROFILE_DIR/$ESSID"
 
     cat >"$PROFILE" <<END_OF_PROFILE
-CONNECTION="wireless"
+Connection="wireless"
 ESSID="$ESSID"
-INTERFACE="$INTERFACE"
-DESCRIPTION="Automatically generated profile"
-SCAN="yes"
+Interface="$INTERFACE"
+Description="Automatically generated profile"
+Scan="yes"
 IP="dhcp"
-TIMEOUT="10"
-SECURITY="$SECURITY"
+Ttimeout="10"
+Security="$SECURITY"
 END_OF_PROFILE
 
     [[ -n "$KEY" ]] && echo "KEY=\"$KEY\"" >> "$PROFILE"
@@ -270,7 +270,7 @@ if [[ $RESULT = 0 ]]; then
     rm $NETWORKS # it's not needed anymore
 
     # let's try to connect
-    netcfg "$PROFILE"
+    netctl start "$PROFILE"
 
     # if profile was created but connection did not succeed
     if [[ $? != 0 && -n "$GEN_PROFILE" ]]; then
